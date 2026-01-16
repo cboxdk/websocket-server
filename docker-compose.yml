@@ -1,40 +1,24 @@
 services:
   websocket-server:
-    build:
-      context: .
-      args:
-        PHP_VERSION: "8.4"
+    build: .
     ports:
-      - "80:80"      # HTTP API
-      - "8080:8080"  # WebSocket
+      - "80:80"
+      - "8080:8080"
     environment:
-      APP_NAME: "Cbox WebSocket Server"
+      APP_NAME: Cbox WebSocket Server
       APP_ENV: production
       APP_DEBUG: "false"
       APP_KEY: "${APP_KEY}"
       API_ADMIN_TOKEN: "${API_ADMIN_TOKEN}"
+      LARAVEL_REVERB: "true"
       REVERB_HOST: "0.0.0.0"
       REVERB_PORT: "8080"
       REVERB_SCALING_ENABLED: "false"
       METRICS_ENABLED: "true"
     volumes:
       - ./storage/reverb/apps.json:/var/www/html/storage/reverb/apps.json
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/api/metrics"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
 
-  # Optional: Redis for cluster mode
+  # Redis for cluster mode
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    profiles:
-      - cluster
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    profiles: [cluster]
