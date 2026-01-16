@@ -32,6 +32,14 @@ class PrometheusExporter
             'type' => 'gauge',
             'help' => 'Total current active channels across all apps',
         ],
+        'reverb_subscriptions_total' => [
+            'type' => 'gauge',
+            'help' => 'Current number of channel subscriptions by type per app',
+        ],
+        'reverb_subscriptions_current' => [
+            'type' => 'gauge',
+            'help' => 'Total current channel subscriptions across all apps',
+        ],
         'reverb_server_info' => [
             'type' => 'gauge',
             'help' => 'Reverb server information',

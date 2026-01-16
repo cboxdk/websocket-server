@@ -70,6 +70,7 @@ class MetricsController extends Controller
         $reverbUp = false;
         $totalConnections = 0;
         $totalChannels = 0;
+        $totalSubscriptions = 0;
 
         foreach ($this->appProvider->all() as $app) {
             try {
@@ -85,13 +86,18 @@ class MetricsController extends Controller
                     ]);
                     $totalConnections += $metrics['connections'];
 
-                    // Channel counts per app
-                    foreach ($metrics['channels'] as $type => $count) {
-                        $this->store->gauge('reverb_channels_active', $count, [
+                    // Channel counts and subscriptions per app
+                    foreach ($metrics['channels'] as $type => $data) {
+                        $this->store->gauge('reverb_channels_active', $data['count'], [
                             'app_id' => $appId,
                             'type' => $type,
                         ]);
-                        $totalChannels += $count;
+                        $this->store->gauge('reverb_subscriptions_total', $data['subscriptions'], [
+                            'app_id' => $appId,
+                            'type' => $type,
+                        ]);
+                        $totalChannels += $data['count'];
+                        $totalSubscriptions += $data['subscriptions'];
                     }
                 }
             } catch (Throwable) {
@@ -106,13 +112,14 @@ class MetricsController extends Controller
         if ($reverbUp) {
             $this->store->gauge('reverb_connections_current', $totalConnections);
             $this->store->gauge('reverb_channels_current', $totalChannels);
+            $this->store->gauge('reverb_subscriptions_current', $totalSubscriptions);
         }
     }
 
     /**
      * Fetch metrics for a specific app from Reverb's API.
      *
-     * @return array{connections: int, channels: array<string, int>}|null
+     * @return array{connections: int, channels: array<string, array{count: int, subscriptions: int}>}|null
      */
     protected function fetchAppMetrics(Application $app): ?array
     {
@@ -126,22 +133,23 @@ class MetricsController extends Controller
 
         $connections = $connectionsResult->connections ?? 0;
 
-        // Get channel info
+        // Get channel info with subscription counts
         $channelsResult = $pusher->get('/channels', [
             'info' => 'subscription_count',
         ]);
 
         $channels = [
-            'public' => 0,
-            'private' => 0,
-            'presence' => 0,
-            'encrypted' => 0,
+            'public' => ['count' => 0, 'subscriptions' => 0],
+            'private' => ['count' => 0, 'subscriptions' => 0],
+            'presence' => ['count' => 0, 'subscriptions' => 0],
+            'encrypted' => ['count' => 0, 'subscriptions' => 0],
         ];
 
         if ($channelsResult && isset($channelsResult->channels)) {
             foreach ($channelsResult->channels as $name => $info) {
                 $type = $this->determineChannelType($name);
-                $channels[$type]++;
+                $channels[$type]['count']++;
+                $channels[$type]['subscriptions'] += $info->subscription_count ?? 0;
             }
         }
 
