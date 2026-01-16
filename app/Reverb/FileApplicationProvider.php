@@ -94,13 +94,16 @@ class FileApplicationProvider implements ApplicationProvider
 
     /**
      * Load applications from JSON file.
+     * Creates an empty config file if it doesn't exist.
      *
      * @throws RuntimeException
      */
     protected function loadApps(): void
     {
         if (! file_exists($this->configPath)) {
-            throw new RuntimeException("Reverb apps configuration file not found: {$this->configPath}");
+            $this->initializeEmptyConfig();
+
+            return;
         }
 
         $content = file_get_contents($this->configPath);
@@ -116,6 +119,24 @@ class FileApplicationProvider implements ApplicationProvider
         }
 
         $this->applications = collect($data['apps']);
+        $this->lastModified = (int) filemtime($this->configPath);
+        $this->lastChecked = time();
+    }
+
+    /**
+     * Initialize an empty configuration file.
+     */
+    protected function initializeEmptyConfig(): void
+    {
+        $directory = dirname($this->configPath);
+
+        if (! is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        file_put_contents($this->configPath, json_encode(['apps' => []], JSON_PRETTY_PRINT));
+
+        $this->applications = collect();
         $this->lastModified = (int) filemtime($this->configPath);
         $this->lastChecked = time();
     }
