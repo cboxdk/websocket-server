@@ -8,9 +8,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/docs', function () {
-    return view('docs');
-});
+// /docs route is handled by Scalar Laravel package (config/scalar.php)
 
 // Prometheus metrics endpoint (standard path)
 Route::middleware(MetricsAuth::class)->get('/metrics', MetricsController::class)->name('metrics');

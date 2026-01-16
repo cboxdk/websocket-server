@@ -2,14 +2,10 @@
 
 namespace App\Providers;
 
-use App\Listeners\ReverbMetricsListener;
 use App\Metrics\Contracts\MetricsStore;
 use App\Metrics\InMemoryMetricsStore;
 use App\Metrics\PrometheusExporter;
-use App\Metrics\RedisMetricsStore;
-use App\Metrics\ReverbMetricsCollector;
 use App\Reverb\FileApplicationProvider;
-use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Reverb\ApplicationManager;
 
@@ -22,7 +18,6 @@ class ReverbServiceProvider extends ServiceProvider
     {
         $this->registerFileApplicationProvider();
         $this->registerMetricsStore();
-        $this->registerMetricsCollector();
         $this->registerPrometheusExporter();
     }
 
@@ -32,7 +27,6 @@ class ReverbServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerFileDriver();
-        $this->registerMetricsListener();
     }
 
     /**
@@ -51,36 +45,13 @@ class ReverbServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register the metrics store based on configuration.
+     * Register the metrics store.
+     * Uses InMemoryMetricsStore since metrics are built on-demand from Reverb's API.
      */
     protected function registerMetricsStore(): void
     {
-        $this->app->singleton(MetricsStore::class, function ($app) {
-            $driver = $app['config']->get('metrics.driver', 'auto');
-
-            if ($driver === 'auto') {
-                $driver = $app['config']->get('reverb.servers.reverb.scaling.enabled', false)
-                    ? 'redis'
-                    : 'memory';
-            }
-
-            return match ($driver) {
-                'redis' => new RedisMetricsStore(
-                    $app['config']->get('metrics.redis.prefix'),
-                    $app['config']->get('metrics.redis.connection')
-                ),
-                default => new InMemoryMetricsStore,
-            };
-        });
-    }
-
-    /**
-     * Register the metrics collector.
-     */
-    protected function registerMetricsCollector(): void
-    {
-        $this->app->singleton(ReverbMetricsCollector::class, function ($app) {
-            return new ReverbMetricsCollector($app->make(MetricsStore::class));
+        $this->app->singleton(MetricsStore::class, function () {
+            return new InMemoryMetricsStore;
         });
     }
 
@@ -104,19 +75,5 @@ class ReverbServiceProvider extends ServiceProvider
                 return $this->app->make(FileApplicationProvider::class);
             });
         });
-    }
-
-    /**
-     * Register the metrics event listener.
-     */
-    protected function registerMetricsListener(): void
-    {
-        if (! $this->app['config']->get('metrics.enabled', true)) {
-            return;
-        }
-
-        $this->app->make(Dispatcher::class)->subscribe(
-            $this->app->make(ReverbMetricsListener::class)
-        );
     }
 }

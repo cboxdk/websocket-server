@@ -12,33 +12,25 @@ class PrometheusExporter
      * @var array<string, array{type: string, help: string}>
      */
     protected array $metricDefinitions = [
+        'reverb_up' => [
+            'type' => 'gauge',
+            'help' => 'Whether Reverb server is reachable (1 = up, 0 = down)',
+        ],
         'reverb_connections_total' => [
             'type' => 'gauge',
-            'help' => 'Current number of active WebSocket connections',
+            'help' => 'Current number of active WebSocket connections per app',
         ],
-        'reverb_connections_created_total' => [
-            'type' => 'counter',
-            'help' => 'Total number of WebSocket connections created',
-        ],
-        'reverb_connections_closed_total' => [
-            'type' => 'counter',
-            'help' => 'Total number of WebSocket connections closed',
-        ],
-        'reverb_messages_received_total' => [
-            'type' => 'counter',
-            'help' => 'Total number of messages received',
-        ],
-        'reverb_messages_sent_total' => [
-            'type' => 'counter',
-            'help' => 'Total number of messages sent',
+        'reverb_connections_current' => [
+            'type' => 'gauge',
+            'help' => 'Total current WebSocket connections across all apps',
         ],
         'reverb_channels_active' => [
             'type' => 'gauge',
-            'help' => 'Current number of active channels',
+            'help' => 'Current number of active channels by type',
         ],
-        'reverb_subscriptions_total' => [
-            'type' => 'counter',
-            'help' => 'Total number of channel subscriptions',
+        'reverb_channels_current' => [
+            'type' => 'gauge',
+            'help' => 'Total current active channels across all apps',
         ],
         'reverb_server_info' => [
             'type' => 'gauge',
@@ -47,10 +39,6 @@ class PrometheusExporter
         'reverb_apps_configured' => [
             'type' => 'gauge',
             'help' => 'Number of configured WebSocket applications',
-        ],
-        'reverb_standalone_mode' => [
-            'type' => 'gauge',
-            'help' => 'Indicates standalone mode is active (WebSocket metrics need Redis)',
         ],
     ];
 
