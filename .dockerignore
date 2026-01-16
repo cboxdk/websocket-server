@@ -1,0 +1,53 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Environment files (will be mounted at runtime)
+.env
+.env.*
+!.env.example
+
+# Dependencies (will be installed in build)
+/vendor
+/node_modules
+
+# Testing
+/tests
+phpunit.xml
+.phpunit.cache
+.phpunit.result.cache
+
+# Documentation
+*.md
+!README.md
+LICENSE
+
+# Development files
+.editorconfig
+.prettierrc
+.eslintrc*
+docker-compose*.yml
+
+# Logs and cache
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*
+
+# Keep .gitkeep files
+!**/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
