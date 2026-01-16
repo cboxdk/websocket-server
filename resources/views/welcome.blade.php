@@ -144,6 +144,20 @@
             box-shadow: 0 0 30px rgba(6, 182, 212, 0.1);
         }
 
+        a.card-link {
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        a.card-link:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        a.card-link:hover .card-value {
+            color: #22d3ee;
+        }
+
         .card-label {
             font-size: 0.7rem;
             text-transform: uppercase;
@@ -352,25 +366,29 @@
                 <div class="card-label">Protocol</div>
                 <div class="card-value">Pusher Protocol v7</div>
             </div>
-            <div class="card">
+            <a href="/docs" class="card card-link">
                 <div class="card-label">REST API</div>
                 <div class="card-value">/api/apps</div>
-            </div>
-            <div class="card">
+            </a>
+            <a href="/metrics" class="card card-link">
                 <div class="card-label">Metrics</div>
                 <div class="card-value">/metrics</div>
-            </div>
-            <div class="card">
+            </a>
+            <a href="/health" class="card card-link">
                 <div class="card-label">Health Check</div>
                 <div class="card-value">/health</div>
-            </div>
+            </a>
+            <a href="/docs" class="card card-link">
+                <div class="card-label">API Docs</div>
+                <div class="card-value">/docs</div>
+            </a>
         </div>
 
         <section class="api-section">
             <div class="api-header">
                 <a href="/docs" class="api-title" style="text-decoration: none; color: inherit;">API Reference</a>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <span class="api-badge">Bearer Token Auth</span>
+                    <span class="api-badge" title="Set via API_ADMIN_TOKEN env">Bearer Token</span>
                     <a href="/docs" class="api-badge" style="background: rgba(6, 182, 212, 0.2); color: #22d3ee; text-decoration: none;">Open Docs →</a>
                 </div>
             </div>
@@ -418,9 +436,9 @@
             </div>
 
             <div class="code-example">
-<code><span class="comment"># Create a new application</span>
+<code><span class="comment"># Token from API_ADMIN_TOKEN environment variable</span>
 curl -X POST {{ url('/api/apps') }} \
-  -H "<span class="key">Authorization</span>: <span class="string">Bearer YOUR_TOKEN</span>" \
+  -H "<span class="key">Authorization</span>: <span class="string">Bearer $API_ADMIN_TOKEN</span>" \
   -H "<span class="key">Content-Type</span>: <span class="string">application/json</span>" \
   -d '{"<span class="key">name</span>": "<span class="string">My App</span>"}'</code>
             </div>
