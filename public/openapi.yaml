@@ -1,0 +1,389 @@
+openapi: 3.1.0
+info:
+  title: Cbox WebSocket Server API
+  description: |
+    REST API for managing WebSocket applications on the Cbox WebSocket Server.
+
+    ## Authentication
+    All endpoints (except `/api/metrics`) require Bearer token authentication.
+    Set the `API_ADMIN_TOKEN` environment variable and use it in the Authorization header.
+
+    ## WebSocket Connection
+    Connect to WebSocket using: `ws://{host}:8080/app/{app_key}`
+  version: 1.0.0
+  contact:
+    name: Cbox
+    url: https://cbox.dk
+
+servers:
+  - url: /api
+    description: API Server
+
+tags:
+  - name: Applications
+    description: Manage WebSocket applications
+  - name: Monitoring
+    description: Server monitoring and metrics
+
+security:
+  - BearerAuth: []
+
+paths:
+  /apps:
+    get:
+      tags: [Applications]
+      summary: List all applications
+      description: Returns a list of all configured WebSocket applications.
+      responses:
+        '200':
+          description: List of applications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Application'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Applications]
+      summary: Create a new application
+      description: Creates a new WebSocket application with auto-generated key and secret.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApplication'
+      responses:
+        '201':
+          description: Application created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Application'
+                  message:
+                    type: string
+                    example: Application created successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /apps/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Application ID
+
+    get:
+      tags: [Applications]
+      summary: Get application details
+      description: Returns details of a specific application.
+      responses:
+        '200':
+          description: Application details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Application'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Applications]
+      summary: Update application
+      description: Updates an existing application's configuration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateApplication'
+      responses:
+        '200':
+          description: Application updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Application'
+                  message:
+                    type: string
+                    example: Application updated successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    delete:
+      tags: [Applications]
+      summary: Delete application
+      description: Permanently deletes an application. Existing connections will continue until disconnected.
+      responses:
+        '200':
+          description: Application deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Application deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /apps/{id}/regenerate-secret:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Application ID
+
+    post:
+      tags: [Applications]
+      summary: Regenerate application secret
+      description: Generates a new secret for the application. The old secret will immediately become invalid.
+      responses:
+        '200':
+          description: Secret regenerated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Application'
+                  message:
+                    type: string
+                    example: Secret regenerated successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /reload:
+    post:
+      tags: [Applications]
+      summary: Reload configuration
+      description: Forces a reload of the application configuration from the JSON file.
+      responses:
+        '200':
+          description: Configuration reloaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Configuration reloaded successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /metrics:
+    get:
+      tags: [Monitoring]
+      summary: Prometheus metrics
+      description: Returns server metrics in Prometheus text format.
+      security:
+        - BearerAuth: []
+        - {}
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  # HELP reverb_server_info Reverb server information
+                  # TYPE reverb_server_info gauge
+                  reverb_server_info{version="12.0.0",php_version="8.4.0"} 1
+                  # HELP reverb_apps_configured Number of configured applications
+                  # TYPE reverb_apps_configured gauge
+                  reverb_apps_configured 2
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Use the API_ADMIN_TOKEN configured on the server
+
+  schemas:
+    Application:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        key:
+          type: string
+          example: "app1key12345678901234"
+        secret:
+          type: string
+          example: "app1secret1234567890123456789012345678"
+        name:
+          type: string
+          example: "My Application"
+        allowed_origins:
+          type: array
+          items:
+            type: string
+          example: ["*"]
+        enable_client_messages:
+          type: boolean
+          example: false
+        max_connections:
+          type: integer
+          nullable: true
+          example: null
+        max_message_size:
+          type: integer
+          example: 10000
+        options:
+          type: object
+          properties:
+            host:
+              type: string
+              example: "localhost"
+            port:
+              type: integer
+              example: 8080
+            scheme:
+              type: string
+              example: "http"
+            useTLS:
+              type: boolean
+              example: false
+            ping_interval:
+              type: integer
+              example: 60
+            activity_timeout:
+              type: integer
+              example: 30
+
+    CreateApplication:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: "My Application"
+        allowed_origins:
+          type: array
+          items:
+            type: string
+          default: ["*"]
+          example: ["https://example.com"]
+        enable_client_messages:
+          type: boolean
+          default: false
+        max_connections:
+          type: integer
+          nullable: true
+          minimum: 1
+        max_message_size:
+          type: integer
+          default: 10000
+          minimum: 1
+        options:
+          type: object
+          properties:
+            ping_interval:
+              type: integer
+              default: 60
+            activity_timeout:
+              type: integer
+              default: 30
+
+    UpdateApplication:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        allowed_origins:
+          type: array
+          items:
+            type: string
+        enable_client_messages:
+          type: boolean
+        max_connections:
+          type: integer
+          nullable: true
+          minimum: 1
+        max_message_size:
+          type: integer
+          minimum: 1
+        options:
+          type: object
+
+  responses:
+    Unauthorized:
+      description: Invalid or missing authentication token
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Unauthorized
+
+    NotFound:
+      description: Application not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Application not found
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: The name field is required.
+              errors:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
