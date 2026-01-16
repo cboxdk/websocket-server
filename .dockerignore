@@ -38,14 +38,11 @@ LICENSE
 .eslintrc*
 docker-compose*.yml
 
-# Logs and cache
-storage/logs/*
-storage/framework/cache/*
-storage/framework/sessions/*
-storage/framework/views/*
-bootstrap/cache/*
+# Storage and cache (recreated at runtime)
+/storage
+/bootstrap/cache
 
-# Keep .gitkeep files
+# Keep .gitkeep files for directory structure
 !**/.gitkeep
 
 # OS files

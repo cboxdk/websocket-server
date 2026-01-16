@@ -1,0 +1,107 @@
+# Custom PHPeek PM Configuration for Cbox WebSocket Server
+# Includes fix-permissions process to run at startup
+
+version: "1.0"
+
+global:
+  shutdown_timeout: 30
+  log_level: info
+  log_format: json
+  api_enabled: false
+  api_port: 9180
+  metrics_enabled: true
+  metrics_port: 9090
+  metrics_path: /metrics
+  restart_backoff_initial: 1s
+  restart_backoff_max: 60s
+  max_restart_attempts: 5
+
+processes:
+  # Fix Laravel permissions before starting other processes
+  fix-permissions:
+    enabled: true
+    command: ["bash", "-c", "chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache"]
+    type: oneshot
+    restart: never
+    working_dir: /var/www/html
+    stdout: true
+    stderr: true
+
+  php-fpm:
+    enabled: true
+    command: ["php-fpm", "-F", "-R"]
+    type: longrun
+    restart: always
+    scale: 1
+    depends_on:
+      - fix-permissions
+    stdout: true
+    stderr: true
+    health_check:
+      type: tcp
+      address: "127.0.0.1:9000"
+      period: 5
+      timeout: 3
+      failure_threshold: 3
+
+  nginx:
+    enabled: true
+    command: ["nginx", "-g", "daemon off;"]
+    type: longrun
+    restart: always
+    scale: 1
+    depends_on:
+      - php-fpm
+    stdout: true
+    stderr: true
+    health_check:
+      type: http
+      url: "http://127.0.0.1:80/health"
+      period: 5
+      timeout: 3
+      failure_threshold: 3
+      expected_status: 200
+
+  reverb:
+    enabled: false
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    type: longrun
+    restart: always
+    scale: 1
+    working_dir: /var/www/html
+    stdout: true
+    stderr: true
+
+  horizon:
+    enabled: false
+    command: ["php", "artisan", "horizon"]
+    type: longrun
+    restart: always
+    scale: 1
+    working_dir: /var/www/html
+    stdout: true
+    stderr: true
+    shutdown:
+      pre_stop_hook:
+        command: ["php", "artisan", "horizon:terminate"]
+        timeout: 60
+
+  queue-default:
+    enabled: false
+    command: ["php", "artisan", "queue:work", "redis", "--queue=default", "--tries=3"]
+    type: longrun
+    restart: always
+    scale: 2
+    working_dir: /var/www/html
+    stdout: true
+    stderr: true
+
+  scheduler:
+    enabled: false
+    command: ["php", "artisan", "schedule:work"]
+    type: longrun
+    restart: always
+    scale: 1
+    working_dir: /var/www/html
+    stdout: true
+    stderr: true

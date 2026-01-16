@@ -17,8 +17,26 @@ Route::middleware(MetricsAuth::class)->get('/metrics', MetricsController::class)
 
 // Health check endpoint for Docker/Kubernetes
 Route::get('/health', function () {
+    $reverbHost = config('reverb.servers.reverb.host', '0.0.0.0');
+    $reverbPort = config('reverb.servers.reverb.port', 8080);
+
+    // Check if Reverb is listening
+    $reverbHealthy = false;
+    $connection = @fsockopen($reverbHost === '0.0.0.0' ? '127.0.0.1' : $reverbHost, $reverbPort, $errno, $errstr, 2);
+
+    if ($connection) {
+        fclose($connection);
+        $reverbHealthy = true;
+    }
+
+    $status = $reverbHealthy ? 'healthy' : 'unhealthy';
+    $statusCode = $reverbHealthy ? 200 : 503;
+
     return response()->json([
-        'status' => 'healthy',
+        'status' => $status,
         'timestamp' => now()->toIso8601String(),
-    ]);
+        'checks' => [
+            'reverb' => $reverbHealthy ? 'up' : 'down',
+        ],
+    ], $statusCode);
 })->name('health');

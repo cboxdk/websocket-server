@@ -5,44 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>API Documentation - Cbox WebSocket Server</title>
     <link rel="icon" type="image/png" href="/assets/cbox-icon.png">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; }
+        .home-button {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            z-index: 9999;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: rgba(30, 30, 30, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #a0a0a0;
+            text-decoration: none;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s ease;
+        }
+        .home-button:hover {
+            background: rgba(50, 50, 50, 0.95);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .home-button svg {
+            width: 14px;
+            height: 14px;
+        }
     </style>
 </head>
 <body>
-    <redoc
-        spec-url="/openapi.yaml"
-        hide-hostname
-        theme='{
-            "colors": {
-                "primary": { "main": "#06b6d4" },
-                "success": { "main": "#10b981" },
-                "warning": { "main": "#f59e0b" },
-                "error": { "main": "#ef4444" },
-                "text": { "primary": "#f9fafb", "secondary": "#9ca3af" },
-                "http": {
-                    "get": "#10b981",
-                    "post": "#3b82f6",
-                    "put": "#f59e0b",
-                    "delete": "#ef4444"
-                }
-            },
-            "typography": {
-                "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
-                "headings": { "fontFamily": "Inter, -apple-system, sans-serif" },
-                "code": { "fontFamily": "JetBrains Mono, monospace" }
-            },
-            "sidebar": {
-                "backgroundColor": "#0a0f1a",
-                "textColor": "#9ca3af",
-                "activeTextColor": "#06b6d4"
-            },
-            "rightPanel": {
-                "backgroundColor": "#111827"
+    <a href="/" class="home-button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 18l-6-6 6-6"/>
+        </svg>
+        Back
+    </a>
+    <script id="api-reference" data-url="/openapi.yaml"></script>
+    <script>
+        var configuration = {
+            theme: 'purple',
+            darkMode: true,
+            hiddenClients: true,
+            hideModels: false,
+            hideDownloadButton: true,
+            showDeveloperTools: 'never',
+            metaData: {
+                title: 'Cbox WebSocket Server API'
             }
-        }'
-    ></redoc>
-    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+        }
+        document.getElementById('api-reference').dataset.configuration = JSON.stringify(configuration)
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
 </body>
 </html>

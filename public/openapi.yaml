@@ -5,7 +5,7 @@ info:
     REST API for managing WebSocket applications on the Cbox WebSocket Server.
 
     ## Authentication
-    All endpoints (except `/api/metrics`) require Bearer token authentication.
+    All endpoints (except `/metrics` and `/health`) require Bearer token authentication.
     Set the `API_ADMIN_TOKEN` environment variable and use it in the Authorization header.
 
     ## WebSocket Connection

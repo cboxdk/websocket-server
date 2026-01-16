@@ -13,6 +13,10 @@ COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction
 
 COPY . .
+
+# Create storage directories needed for Laravel (excluded from build context via .dockerignore)
+RUN mkdir -p storage/app/public storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+
 RUN composer dump-autoload --optimize --no-dev
 
 #
@@ -25,12 +29,16 @@ LABEL org.opencontainers.image.description="Cbox WebSocket Server powered by Lar
 
 WORKDIR /var/www/html
 
+# Copy application (excluding storage from build)
 COPY --from=build --chown=www-data:www-data /app .
 
-# Create required directories
-RUN mkdir -p storage/reverb storage/logs storage/framework/{cache,sessions,views} bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache \
-    && echo '{"apps":[]}' > storage/reverb/apps.json
+# Remove storage from build stage and create fresh
+RUN rm -rf storage bootstrap/cache && \
+    mkdir -p storage/app/public storage/framework/cache storage/framework/sessions storage/framework/views storage/logs storage/reverb bootstrap/cache && \
+    echo '{"apps":[]}' > storage/reverb/apps.json
+
+# Copy custom PHPeek PM config with fix-permissions process
+COPY docker/phpeek-pm.yaml /etc/phpeek-pm/phpeek-pm.yaml
 
 # Enable Reverb via PHPeek PM
 ENV LARAVEL_REVERB=true

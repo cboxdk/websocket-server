@@ -57,7 +57,7 @@
 
         .logo {
             max-width: 200px;
-            margin-bottom: 1.5rem;
+            margin: 0 auto 1.5rem;
         }
 
         .logo img {
@@ -98,10 +98,28 @@
         .status-dot {
             width: 8px;
             height: 8px;
-            background: var(--success);
+            background: var(--text-muted);
             border-radius: 50%;
+        }
+
+        .status-dot.online {
+            background: var(--success);
             box-shadow: 0 0 12px var(--success-glow);
             animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-dot.offline {
+            background: #ef4444;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .status-badge.offline {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .status-badge.offline .status-text {
+            color: #ef4444;
         }
 
         @keyframes pulse {
@@ -174,87 +192,6 @@
             word-break: break-all;
         }
 
-        /* API Section */
-        .api-section {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            backdrop-filter: blur(10px);
-        }
-
-        .api-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .api-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .api-badge {
-            font-size: 0.7rem;
-            background: rgba(139, 92, 246, 0.2);
-            color: #a78bfa;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-weight: 500;
-        }
-
-        .endpoint-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .endpoint {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-            transition: background 0.2s;
-        }
-
-        .endpoint:hover {
-            background: rgba(0, 0, 0, 0.3);
-        }
-
-        .method {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            font-weight: 600;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            min-width: 52px;
-            text-align: center;
-        }
-
-        .method-get { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-        .method-post { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
-        .method-put { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
-        .method-delete { background: rgba(239, 68, 68, 0.2); color: #f87171; }
-
-        .endpoint-path {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.813rem;
-            color: var(--text-secondary);
-            flex: 1;
-        }
-
-        .endpoint-desc {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
         /* CTA Button */
         .cta-container {
             display: flex;
@@ -319,27 +256,6 @@
         footer a:hover {
             color: #22d3ee;
         }
-
-        /* Code block */
-        .code-example {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
-            overflow-x: auto;
-        }
-
-        .code-example code {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            white-space: pre;
-        }
-
-        .code-example .comment { color: var(--text-muted); }
-        .code-example .string { color: #34d399; }
-        .code-example .key { color: #60a5fa; }
     </style>
 </head>
 <body>
@@ -351,24 +267,20 @@
             <h1 class="title">WebSocket Server</h1>
             <p class="subtitle">Real-time communication powered by Laravel Reverb</p>
 
-            <div class="status-badge">
-                <span class="status-dot"></span>
-                <span class="status-text">Online</span>
+            <div class="status-badge" id="status-badge">
+                <span class="status-dot" id="status-dot"></span>
+                <span class="status-text" id="status-text">Checking...</span>
             </div>
         </header>
 
         <div class="cards-grid">
             <div class="card">
-                <div class="card-label">WebSocket Endpoint</div>
-                <div class="card-value">ws://{{ request()->getHost() }}:8080/app/{key}</div>
-            </div>
-            <div class="card">
                 <div class="card-label">Protocol</div>
                 <div class="card-value">Pusher Protocol v7</div>
             </div>
             <a href="/docs" class="card card-link">
-                <div class="card-label">REST API</div>
-                <div class="card-value">/api/apps</div>
+                <div class="card-label">API Docs</div>
+                <div class="card-value">/docs</div>
             </a>
             <a href="/metrics" class="card card-link">
                 <div class="card-label">Metrics</div>
@@ -378,71 +290,7 @@
                 <div class="card-label">Health Check</div>
                 <div class="card-value">/health</div>
             </a>
-            <a href="/docs" class="card card-link">
-                <div class="card-label">API Docs</div>
-                <div class="card-value">/docs</div>
-            </a>
         </div>
-
-        <section class="api-section">
-            <div class="api-header">
-                <a href="/docs" class="api-title" style="text-decoration: none; color: inherit;">API Reference</a>
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <span class="api-badge" title="Set via API_ADMIN_TOKEN env">Bearer Token</span>
-                    <a href="/docs" class="api-badge" style="background: rgba(6, 182, 212, 0.2); color: #22d3ee; text-decoration: none;">Open Docs →</a>
-                </div>
-            </div>
-            <div class="endpoint-list">
-                <div class="endpoint">
-                    <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/apps</span>
-                    <span class="endpoint-desc">List all applications</span>
-                </div>
-                <div class="endpoint">
-                    <span class="method method-post">POST</span>
-                    <span class="endpoint-path">/api/apps</span>
-                    <span class="endpoint-desc">Create new application</span>
-                </div>
-                <div class="endpoint">
-                    <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/apps/{id}</span>
-                    <span class="endpoint-desc">Get application details</span>
-                </div>
-                <div class="endpoint">
-                    <span class="method method-put">PUT</span>
-                    <span class="endpoint-path">/api/apps/{id}</span>
-                    <span class="endpoint-desc">Update application</span>
-                </div>
-                <div class="endpoint">
-                    <span class="method method-delete">DEL</span>
-                    <span class="endpoint-path">/api/apps/{id}</span>
-                    <span class="endpoint-desc">Delete application</span>
-                </div>
-                <div class="endpoint">
-                    <span class="method method-post">POST</span>
-                    <span class="endpoint-path">/api/apps/{id}/regenerate-secret</span>
-                    <span class="endpoint-desc">Regenerate app secret</span>
-                </div>
-                <div class="endpoint">
-                    <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/metrics</span>
-                    <span class="endpoint-desc">Prometheus metrics</span>
-                </div>
-                <div class="endpoint">
-                    <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/health</span>
-                    <span class="endpoint-desc">Health check endpoint</span>
-                </div>
-            </div>
-
-            <div class="code-example">
-<code><span class="comment"># Token from API_ADMIN_TOKEN environment variable</span>
-curl -X POST {{ url('/api/apps') }} \
-  -H "<span class="key">Authorization</span>: <span class="string">Bearer $API_ADMIN_TOKEN</span>" \
-  -H "<span class="key">Content-Type</span>: <span class="string">application/json</span>" \
-  -d '{"<span class="key">name</span>": "<span class="string">My App</span>"}'</code>
-            </div>
-        </section>
 
         <div class="cta-container">
             <a href="https://cbox.dk" class="cta-button cta-primary" target="_blank">
@@ -464,5 +312,35 @@ curl -X POST {{ url('/api/apps') }} \
             &middot; <a href="https://github.com/cboxdk/websocket-server" target="_blank">GitHub</a>
         </footer>
     </div>
+
+    <script>
+        async function checkHealth() {
+            const badge = document.getElementById('status-badge');
+            const dot = document.getElementById('status-dot');
+            const text = document.getElementById('status-text');
+
+            try {
+                const response = await fetch('/health', { method: 'GET', timeout: 5000 });
+                const data = await response.json();
+
+                if (response.ok && data.status === 'healthy') {
+                    badge.classList.remove('offline');
+                    dot.classList.add('online');
+                    dot.classList.remove('offline');
+                    text.textContent = 'Online';
+                } else {
+                    throw new Error('Unhealthy');
+                }
+            } catch (e) {
+                badge.classList.add('offline');
+                dot.classList.add('offline');
+                dot.classList.remove('online');
+                text.textContent = 'Offline';
+            }
+        }
+
+        checkHealth();
+        setInterval(checkHealth, 30000);
+    </script>
 </body>
 </html>
