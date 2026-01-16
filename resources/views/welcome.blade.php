@@ -358,7 +358,11 @@
             </div>
             <div class="card">
                 <div class="card-label">Metrics</div>
-                <div class="card-value">/api/metrics</div>
+                <div class="card-value">/metrics</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Health Check</div>
+                <div class="card-value">/health</div>
             </div>
         </div>
 
@@ -403,8 +407,13 @@
                 </div>
                 <div class="endpoint">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/metrics</span>
+                    <span class="endpoint-path">/metrics</span>
                     <span class="endpoint-desc">Prometheus metrics</span>
+                </div>
+                <div class="endpoint">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/health</span>
+                    <span class="endpoint-desc">Health check endpoint</span>
                 </div>
             </div>
 
@@ -424,7 +433,7 @@ curl -X POST {{ url('/api/apps') }} \
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/>
                 </svg>
             </a>
-            <a href="/api/metrics" class="cta-button cta-secondary">
+            <a href="/metrics" class="cta-button cta-secondary">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M3 3v18h18M9 17V9m4 8v-5m4 5V6"/>
                 </svg>

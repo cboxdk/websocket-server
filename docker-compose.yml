@@ -17,6 +17,12 @@ services:
       METRICS_ENABLED: "true"
     volumes:
       - ./storage/reverb/apps.json:/var/www/html/storage/reverb/apps.json
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # Redis for cluster mode
   redis:

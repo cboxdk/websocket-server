@@ -16,8 +16,8 @@ info:
     url: https://cbox.dk
 
 servers:
-  - url: /api
-    description: API Server
+  - url: /
+    description: Server
 
 tags:
   - name: Applications
@@ -29,7 +29,7 @@ security:
   - BearerAuth: []
 
 paths:
-  /apps:
+  /api/apps:
     get:
       tags: [Applications]
       summary: List all applications
@@ -77,7 +77,7 @@ paths:
         '422':
           $ref: '#/components/responses/ValidationError'
 
-  /apps/{id}:
+  /api/apps/{id}:
     parameters:
       - name: id
         in: path
@@ -155,7 +155,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /apps/{id}/regenerate-secret:
+  /api/apps/{id}/regenerate-secret:
     parameters:
       - name: id
         in: path
@@ -186,7 +186,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /reload:
+  /api/reload:
     post:
       tags: [Applications]
       summary: Reload configuration
@@ -227,6 +227,28 @@ paths:
                   # HELP reverb_apps_configured Number of configured applications
                   # TYPE reverb_apps_configured gauge
                   reverb_apps_configured 2
+
+  /health:
+    get:
+      tags: [Monitoring]
+      summary: Health check
+      description: Returns server health status for Docker/Kubernetes health checks.
+      security: []
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2024-01-15T10:30:00Z"
 
 components:
   securitySchemes:

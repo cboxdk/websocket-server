@@ -36,3 +36,6 @@ RUN mkdir -p storage/reverb storage/logs storage/framework/{cache,sessions,views
 ENV LARAVEL_REVERB=true
 
 EXPOSE 80 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -fsS http://localhost/health || exit 1
