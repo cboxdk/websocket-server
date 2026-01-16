@@ -1,0 +1,44 @@
+{
+    "apps": [
+        {
+            "id": "186217",
+            "key": "bbudj00kixqfj1shuntn",
+            "secret": "eitittpx6ummaw3wsw8o",
+            "name": "Default Application",
+            "allowed_origins": [
+                "*"
+            ],
+            "enable_client_messages": false,
+            "max_connections": null,
+            "max_message_size": 10000,
+            "options": {
+                "host": "localhost",
+                "port": 8080,
+                "scheme": "http",
+                "useTLS": false,
+                "ping_interval": 60,
+                "activity_timeout": 30
+            }
+        },
+        {
+            "id": "10922f49-0edf-49c0-9c6b-f2bf35adf1db",
+            "key": "testapp2key12345678",
+            "secret": "testapp2secret123456789012345678901234",
+            "name": "Test App 2",
+            "allowed_origins": [
+                "*"
+            ],
+            "enable_client_messages": false,
+            "max_connections": null,
+            "max_message_size": 10000,
+            "options": {
+                "host": "localhost",
+                "port": 8080,
+                "scheme": "http",
+                "useTLS": false,
+                "ping_interval": 60,
+                "activity_timeout": 30
+            }
+        }
+    ]
+}

@@ -35,4 +35,17 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | API Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Admin token for authenticating API requests to manage Reverb applications.
+    |
+    */
+
+    'api' => [
+        'admin_token' => env('API_ADMIN_TOKEN'),
+    ],
+
 ];
