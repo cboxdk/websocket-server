@@ -16,7 +16,7 @@ services:
       REVERB_SCALING_ENABLED: "false"
       METRICS_ENABLED: "true"
     volumes:
-      - ./storage/reverb/apps.json:/var/www/html/storage/reverb/apps.json
+      - websocket-data:/var/www/html/database
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost/health"]
       interval: 30s
@@ -28,3 +28,6 @@ services:
   redis:
     image: redis:7-alpine
     profiles: [cluster]
+
+volumes:
+  websocket-data:

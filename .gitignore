@@ -22,7 +22,6 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
-storage/reverb/apps.json
 .playwright-mcp/
 
 # Delegate runtime files

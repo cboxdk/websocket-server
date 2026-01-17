@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAppRequest;
 use App\Http\Requests\UpdateAppRequest;
-use App\Reverb\FileApplicationProvider;
+use App\Reverb\DatabaseApplicationProvider;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 class AppController extends Controller
 {
     public function __construct(
-        protected FileApplicationProvider $provider
+        protected DatabaseApplicationProvider $provider
     ) {}
 
     /**

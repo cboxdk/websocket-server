@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Reverb\FileApplicationProvider;
+use App\Reverb\DatabaseApplicationProvider;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -49,7 +49,7 @@ class UpdateAppRequest extends FormRequest
     {
         $validator->after(function (Validator $validator) {
             if ($this->filled('key')) {
-                $provider = app(FileApplicationProvider::class);
+                $provider = app(DatabaseApplicationProvider::class);
                 $appId = $this->route('app');
                 if ($provider->keyExists($this->input('key'), $appId)) {
                     $validator->errors()->add('key', 'The key has already been taken.');

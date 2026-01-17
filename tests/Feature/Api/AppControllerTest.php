@@ -1,57 +1,31 @@
 <?php
 
-use App\Reverb\FileApplicationProvider;
+use App\Models\ReverbApplication;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->tempDir = storage_path('reverb/test');
-    if (! is_dir($this->tempDir)) {
-        mkdir($this->tempDir, 0755, true);
-    }
-    $this->configPath = $this->tempDir.'/apps.json';
-
-    // Create initial apps.json
-    $apps = [
-        'apps' => [
-            [
-                'id' => 'test-app-1',
-                'key' => 'test-app-1-key-1234',
-                'secret' => 'test-app-1-secret-min-32-characters-long',
-                'name' => 'Test App 1',
-                'allowed_origins' => ['*'],
-                'max_connections' => null,
-                'max_message_size' => 10000,
-                'options' => [
-                    'host' => 'localhost',
-                    'port' => 8080,
-                    'scheme' => 'http',
-                    'useTLS' => false,
-                    'ping_interval' => 60,
-                    'activity_timeout' => 30,
-                ],
-            ],
-        ],
-    ];
-    file_put_contents($this->configPath, json_encode($apps, JSON_PRETTY_PRINT));
-
-    // Configure the provider to use our test file
-    config(['reverb.apps.file.path' => $this->configPath]);
     config(['services.api.admin_token' => 'test-admin-token']);
-
-    // Rebind the provider to use the test config
-    $this->app->singleton(FileApplicationProvider::class, function ($app) {
-        return new FileApplicationProvider($this->configPath, 0);
-    });
-
     $this->validToken = 'test-admin-token';
-});
 
-afterEach(function () {
-    if (file_exists($this->configPath)) {
-        unlink($this->configPath);
-    }
-    if (is_dir($this->tempDir)) {
-        @rmdir($this->tempDir);
-    }
+    ReverbApplication::factory()->create([
+        'id' => 'test-app-1',
+        'key' => 'test-app-1-key-1234',
+        'secret' => 'test-app-1-secret-min-32-characters-long',
+        'name' => 'Test App 1',
+        'allowed_origins' => ['*'],
+        'max_connections' => null,
+        'max_message_size' => 10000,
+        'options' => [
+            'host' => 'localhost',
+            'port' => 8080,
+            'scheme' => 'http',
+            'useTLS' => false,
+            'ping_interval' => 60,
+            'activity_timeout' => 30,
+        ],
+    ]);
 });
 
 test('list apps returns all applications', function () {
@@ -189,11 +163,6 @@ test('delete app returns 404 for non-existent app', function () {
 });
 
 test('regenerate secret creates new secret', function () {
-    // Get original app to compare
-    $originalResponse = $this->getJson('/api/apps/test-app-1', [
-        'Authorization' => 'Bearer '.$this->validToken,
-    ]);
-
     $response = $this->postJson('/api/apps/test-app-1/regenerate-secret', [], [
         'Authorization' => 'Bearer '.$this->validToken,
     ]);

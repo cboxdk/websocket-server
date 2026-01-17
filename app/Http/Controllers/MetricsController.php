@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Metrics\Contracts\MetricsStore;
 use App\Metrics\PrometheusExporter;
-use App\Reverb\FileApplicationProvider;
+use App\Reverb\DatabaseApplicationProvider;
 use Illuminate\Broadcasting\BroadcastManager;
 use Illuminate\Http\Response;
 use Laravel\Reverb\Application;
@@ -15,7 +15,7 @@ class MetricsController extends Controller
     public function __construct(
         protected PrometheusExporter $exporter,
         protected MetricsStore $store,
-        protected FileApplicationProvider $appProvider,
+        protected DatabaseApplicationProvider $appProvider,
         protected BroadcastManager $broadcast
     ) {}
 

@@ -5,7 +5,7 @@ namespace App\Providers;
 use App\Metrics\Contracts\MetricsStore;
 use App\Metrics\InMemoryMetricsStore;
 use App\Metrics\PrometheusExporter;
-use App\Reverb\FileApplicationProvider;
+use App\Reverb\DatabaseApplicationProvider;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Reverb\ApplicationManager;
 
@@ -16,7 +16,7 @@ class ReverbServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->registerFileApplicationProvider();
+        $this->registerDatabaseApplicationProvider();
         $this->registerMetricsStore();
         $this->registerPrometheusExporter();
     }
@@ -26,21 +26,16 @@ class ReverbServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->registerFileDriver();
+        $this->registerDatabaseDriver();
     }
 
     /**
-     * Register the FileApplicationProvider singleton.
+     * Register the DatabaseApplicationProvider singleton.
      */
-    protected function registerFileApplicationProvider(): void
+    protected function registerDatabaseApplicationProvider(): void
     {
-        $this->app->singleton(FileApplicationProvider::class, function ($app) {
-            $config = $app['config']->get('reverb.apps.file', []);
-
-            return new FileApplicationProvider(
-                $config['path'] ?? storage_path('reverb/apps.json'),
-                $config['cache_ttl'] ?? 5
-            );
+        $this->app->singleton(DatabaseApplicationProvider::class, function () {
+            return new DatabaseApplicationProvider;
         });
     }
 
@@ -66,13 +61,13 @@ class ReverbServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register the file driver for Reverb applications.
+     * Register the database driver for Reverb applications.
      */
-    protected function registerFileDriver(): void
+    protected function registerDatabaseDriver(): void
     {
         $this->app->resolving(ApplicationManager::class, function (ApplicationManager $manager) {
-            $manager->extend('file', function () {
-                return $this->app->make(FileApplicationProvider::class);
+            $manager->extend('database', function () {
+                return $this->app->make(DatabaseApplicationProvider::class);
             });
         });
     }

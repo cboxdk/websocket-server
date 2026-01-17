@@ -1,0 +1,23 @@
+{
+    "id": "1092fa3e-9d4f-42ff-865b-9245b0d09fa9",
+    "title": "Opdater readme med cbox branding",
+    "description": "Ingen laravel boilerplate. Fokus p\u00e5 DX. Install og operations",
+    "status": "done",
+    "priority": "medium",
+    "position": 0,
+    "agent_prompt": null,
+    "comments": [
+        {
+            "id": "1521eca0-ccb6-48aa-a080-903a003435cb",
+            "content": "\u2705 Task marked as done. Ready for review.",
+            "is_agent": true,
+            "created_at": "2026-01-16T23:58:14+00:00"
+        }
+    ],
+    "screenshots": [],
+    "started_at": "2026-01-16T23:55:35Z",
+    "completed_at": "2026-01-16T23:56:24Z",
+    "created_at": "2026-01-16T23:55:32+00:00",
+    "updated_at": "2026-01-16T23:58:14+00:00",
+    "retry_count": 0
+}

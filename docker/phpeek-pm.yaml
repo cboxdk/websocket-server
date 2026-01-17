@@ -20,10 +20,22 @@ processes:
   # Fix Laravel permissions before starting other processes
   fix-permissions:
     enabled: true
-    command: ["bash", "-c", "chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache"]
+    command: ["bash", "-c", "chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database"]
     type: oneshot
     restart: never
     working_dir: /var/www/html
+    stdout: true
+    stderr: true
+
+  # Run database migrations on startup
+  migrate:
+    enabled: true
+    command: ["php", "artisan", "migrate", "--force"]
+    type: oneshot
+    restart: never
+    working_dir: /var/www/html
+    depends_on:
+      - fix-permissions
     stdout: true
     stderr: true
 
@@ -34,7 +46,7 @@ processes:
     restart: always
     scale: 1
     depends_on:
-      - fix-permissions
+      - migrate
     stdout: true
     stderr: true
     health_check:

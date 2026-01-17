@@ -69,12 +69,7 @@ return [
 
     'apps' => [
 
-        'provider' => env('REVERB_APPS_PROVIDER', 'file'),
-
-        'file' => [
-            'path' => storage_path('reverb/apps.json'),
-            'cache_ttl' => env('REVERB_APPS_CACHE_TTL', 5),
-        ],
+        'provider' => env('REVERB_APPS_PROVIDER', 'database'),
 
         'apps' => [
             [

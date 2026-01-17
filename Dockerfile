@@ -32,9 +32,9 @@ WORKDIR /var/www/html
 # Copy application (excluding storage from build)
 COPY --from=build --chown=www-data:www-data /app .
 
-# Remove storage from build stage and create fresh (apps.json created on first request)
+# Remove storage from build stage and create fresh directories
 RUN rm -rf storage bootstrap/cache && \
-    mkdir -p storage/app/public storage/framework/cache storage/framework/sessions storage/framework/views storage/logs storage/reverb bootstrap/cache
+    mkdir -p storage/app/public storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache database
 
 # Copy custom PHPeek PM config with fix-permissions process
 COPY docker/phpeek-pm.yaml /etc/phpeek-pm/phpeek-pm.yaml

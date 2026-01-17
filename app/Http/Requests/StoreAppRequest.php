@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Reverb\FileApplicationProvider;
+use App\Reverb\DatabaseApplicationProvider;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -50,7 +50,7 @@ class StoreAppRequest extends FormRequest
     {
         $validator->after(function (Validator $validator) {
             if ($this->filled('key')) {
-                $provider = app(FileApplicationProvider::class);
+                $provider = app(DatabaseApplicationProvider::class);
                 if ($provider->keyExists($this->input('key'))) {
                     $validator->errors()->add('key', 'The key has already been taken.');
                 }

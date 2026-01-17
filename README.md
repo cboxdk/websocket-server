@@ -8,7 +8,7 @@ A production-ready WebSocket server powered by [Laravel Reverb](https://reverb.l
 - **Prometheus Metrics** - Built-in `/metrics` endpoint for monitoring
 - **Health Checks** - Docker/Kubernetes-ready `/health` endpoint
 - **Hot Reload** - Update app configurations without restart
-- **File-Based Storage** - Simple JSON storage, no database required
+- **Database Storage** - SQLite by default, supports MySQL/PostgreSQL
 
 ## Quick Start
 
@@ -20,6 +20,7 @@ docker run -d \
   -p 8080:8080 \
   -e APP_KEY=base64:your-key-here \
   -e API_ADMIN_TOKEN=your-secret-token \
+  -v websocket-data:/var/www/html/database \
   ghcr.io/cboxdk/websocket-server:latest
 ```
 
@@ -36,7 +37,10 @@ services:
       APP_KEY: "${APP_KEY}"
       API_ADMIN_TOKEN: "${API_ADMIN_TOKEN}"
     volumes:
-      - ./apps.json:/var/www/html/storage/reverb/apps.json
+      - websocket-data:/var/www/html/database
+
+volumes:
+  websocket-data:
 ```
 
 ### Local Development
@@ -53,21 +57,79 @@ composer dev
 
 ## Configuration
 
+### Persistence (Volume Mounts)
+
+For data to survive container restarts, mount the following:
+
+| Path | Description | Required |
+|------|-------------|----------|
+| `/var/www/html/database` | SQLite database (apps, sessions, cache) | **Yes** |
+
+**Example with bind mount:**
+
+```bash
+docker run -d \
+  -v /path/on/host/database:/var/www/html/database \
+  ghcr.io/cboxdk/websocket-server:latest
+```
+
+**Example with named volume:**
+
+```bash
+docker run -d \
+  -v websocket-data:/var/www/html/database \
+  ghcr.io/cboxdk/websocket-server:latest
+```
+
 ### Environment Variables
+
+#### Required
+
+| Variable | Description |
+|----------|-------------|
+| `APP_KEY` | Laravel encryption key (generate with `php artisan key:generate --show`) |
+| `API_ADMIN_TOKEN` | Bearer token for API authentication |
+
+#### WebSocket Server
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `APP_KEY` | Laravel application key | *required* |
-| `API_ADMIN_TOKEN` | Token for API authentication | *required* |
 | `REVERB_HOST` | WebSocket server bind address | `0.0.0.0` |
 | `REVERB_PORT` | WebSocket server port | `8080` |
-| `METRICS_ENABLED` | Enable Prometheus metrics | `true` |
-| `METRICS_AUTH_TOKEN` | Token for metrics endpoint | *optional* |
+| `REVERB_SCALING_ENABLED` | Enable Redis-based horizontal scaling | `false` |
 
-Generate an `APP_KEY`:
+#### Metrics
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `METRICS_ENABLED` | Enable Prometheus metrics endpoint | `true` |
+| `METRICS_AUTH_TOKEN` | Bearer token for `/metrics` endpoint | *optional* |
+
+#### Database (Optional - for MySQL/PostgreSQL)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DB_CONNECTION` | Database driver (`sqlite`, `mysql`, `pgsql`) | `sqlite` |
+| `DB_HOST` | Database host | `127.0.0.1` |
+| `DB_PORT` | Database port | `3306` |
+| `DB_DATABASE` | Database name | `laravel` |
+| `DB_USERNAME` | Database username | `root` |
+| `DB_PASSWORD` | Database password | *empty* |
+
+#### Redis (for cluster mode)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `REDIS_HOST` | Redis host | `127.0.0.1` |
+| `REDIS_PORT` | Redis port | `6379` |
+| `REDIS_PASSWORD` | Redis password | *null* |
+
+### Generate APP_KEY
 
 ```bash
 php artisan key:generate --show
+# Or using Docker:
+docker run --rm ghcr.io/cboxdk/websocket-server:latest php artisan key:generate --show
 ```
 
 ## API Reference
