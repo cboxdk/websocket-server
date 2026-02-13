@@ -14,6 +14,10 @@ class ReverbApplication extends Model
 
     protected $keyType = 'string';
 
+    protected $attributes = [
+        'allowed_origins' => '["*"]',
+    ];
+
     protected $fillable = [
         'id',
         'key',

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('key')->unique();
             $table->string('secret');
             $table->string('name');
-            $table->json('allowed_origins')->default('["*"]');
+            $table->json('allowed_origins')->nullable();
             $table->boolean('enable_client_messages')->default(false);
             $table->unsignedInteger('max_connections')->nullable();
             $table->unsignedInteger('max_message_size')->default(10000);
