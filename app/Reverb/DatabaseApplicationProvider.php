@@ -55,10 +55,23 @@ class DatabaseApplicationProvider implements ApplicationProvider
 
     /**
      * Create an Application instance from model.
+     *
+     * Reverb 1.x's Application constructor accepts:
+     *   id, key, secret, pingInterval, activityTimeout, allowedOrigins,
+     *   maxMessageSize, ?maxConnections, acceptClientEventsFrom,
+     *   ?rateLimiting, options
+     *
+     * We honour the legacy `enable_client_messages` boolean by mapping
+     * true → "all", false → "none". Override per-app by setting
+     * `options.accept_client_events_from` (one of "all" | "members" | "none")
+     * which matches Reverb's native config shape.
      */
     protected function createApplication(ReverbApplication $app): Application
     {
         $options = $app->options ?? [];
+
+        $acceptClientEventsFrom = $options['accept_client_events_from']
+            ?? ($app->enable_client_messages ? 'all' : 'none');
 
         return new Application(
             $app->id,
@@ -69,6 +82,8 @@ class DatabaseApplicationProvider implements ApplicationProvider
             $app->allowed_origins ?? ['*'],
             $app->max_message_size ?? 10_000,
             $app->max_connections,
+            $acceptClientEventsFrom,
+            $options['rate_limiting'] ?? null,
             $options,
         );
     }
