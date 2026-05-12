@@ -39,6 +39,20 @@ processes:
     stdout: true
     stderr: true
 
+  # Seed reverb_applications from REVERB_SEED_APPS env (JSON array).
+  # Idempotent — re-runs each pod boot upsert rows from env, leaves
+  # admin-API-created apps alone. No-op when the env var is empty.
+  seed-apps:
+    enabled: true
+    command: ["php", "artisan", "reverb:seed-from-env"]
+    type: oneshot
+    restart: never
+    working_dir: /var/www/html
+    depends_on:
+      - migrate
+    stdout: true
+    stderr: true
+
   php-fpm:
     enabled: true
     command: ["php-fpm", "-F", "-R"]
@@ -46,7 +60,7 @@ processes:
     restart: always
     scale: 1
     depends_on:
-      - migrate
+      - seed-apps
     stdout: true
     stderr: true
     health_check:

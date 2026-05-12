@@ -132,6 +132,41 @@ php artisan key:generate --show
 docker run --rm ghcr.io/cboxdk/websocket-server:latest php artisan key:generate --show
 ```
 
+### Seed Apps From Env
+
+For declarative, GitOps-friendly bootstrap, pass `REVERB_SEED_APPS` as a JSON
+array. At pod start the seed runs as a oneshot after `migrate` and before
+`php-fpm`/`reverb`, so the instance comes up with its apps already provisioned
+— no race with the admin API.
+
+```bash
+REVERB_SEED_APPS='[{"id":"app-1","key":"app-1-key","secret":"app-1-secret-min-32-characters-long","name":"App One","allowed_origins":["https://app-one.example.com"]}]'
+```
+
+Seed is idempotent: re-runs upsert rows by `id`, so secret rotation or
+allowed-origin changes are just an env-var change + redeploy. Apps created
+out-of-band via the admin API are left untouched.
+
+Per-entry schema:
+
+| Field | Type | Required | Default |
+|---|---|---|---|
+| `id` | string | yes | — |
+| `key` | string (unique) | yes | — |
+| `secret` | string | yes | — |
+| `name` | string | yes | — |
+| `allowed_origins` | string[] | no | `["*"]` |
+| `enable_client_messages` | bool | no | `false` |
+| `max_connections` | int\|null | no | `null` |
+| `max_message_size` | int | no | `10000` |
+| `options` | object | no | `null` |
+
+Or invoke manually:
+
+```bash
+php artisan reverb:seed-from-env
+```
+
 ## API Reference
 
 All API endpoints require the `Authorization: Bearer {API_ADMIN_TOKEN}` header.
