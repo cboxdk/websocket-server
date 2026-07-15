@@ -1,13 +1,33 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "cboxdk/websocket-server",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Production-ready multi-tenant WebSocket server powered by Laravel Reverb: dynamic multi-app management over a REST API, Prometheus metrics, health checks, declarative env-seeding, and Docker-first deployment.",
     "keywords": [
+        "cbox",
+        "websocket",
+        "reverb",
         "laravel",
-        "framework"
+        "pusher",
+        "broadcasting",
+        "realtime",
+        "prometheus",
+        "metrics",
+        "multi-tenant",
+        "docker"
     ],
     "license": "MIT",
+    "homepage": "https://cbox.dk/packages/websocket-server",
+    "authors": [
+        {
+            "name": "Cbox",
+            "homepage": "https://cbox.dk"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/cboxdk/websocket-server/issues",
+        "source": "https://github.com/cboxdk/websocket-server"
+    },
     "require": {
         "php": "^8.2",
         "laravel/framework": "^12.0",
