@@ -7,7 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.1.0] - 2026-07-15
+## [1.2.0] - 2026-07-15
+
+### Added
+
+- **First-party observability via `cboxdk/laravel-telemetry` (`^1.0`).** Collector-free
+  traces, metrics and events, auto-discovered on install, on top of the existing
+  Prometheus `/metrics` endpoint. Ships the `telemetry:doctor` / `telemetry:flush`
+  / `telemetry:monitor` maintenance commands; point it at an exporter through its
+  own config to ship signals to a backend.
+
+### Changed
+
+- **Upgraded to Laravel 13 and raised the platform floor.** `laravel/framework`
+  `^12` → `^13`, **PHP `^8.2` → `^8.4`**, `laravel/reverb` `^1.7` → `^1.10`,
+  `laravel/tinker` `^2.10` → `^3.0` (and Symfony 7 → 8 transitively). Build or
+  deploy the server on **PHP 8.4+**; the published Docker image bundles a
+  compatible runtime. Test suite green (61 tests) on the new stack.
 
 ### Added
 

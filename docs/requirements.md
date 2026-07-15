@@ -13,11 +13,21 @@ is invented — it is exactly what the dependency resolver enforces.
 
 | Requirement | Constraint | Notes |
 |---|---|---|
-| PHP | `^8.2` | 8.2 or newer in the 8.x line. |
-| `laravel/framework` | `^12.0` | The application framework. |
-| `laravel/reverb` | `^1.7` | The WebSocket engine this server is built on. |
-| `laravel/tinker` | `^2.10.1` | REPL for maintenance and debugging. |
+| PHP | `^8.4` | 8.4 or newer. |
+| `laravel/framework` | `^13.0` | The application framework. |
+| `laravel/reverb` | `^1.10` | The WebSocket engine this server is built on. |
+| `cboxdk/laravel-telemetry` | `^1.0` | First-party observability — traces, metrics and events (auto-discovered). |
+| `laravel/tinker` | `^3.0` | REPL for maintenance and debugging. |
 | `predis/predis` | `^3.3` | Redis client, used for cluster-mode scaling. |
+
+## Observability
+
+The server ships [`cboxdk/laravel-telemetry`](https://cbox.dk/packages/laravel-telemetry),
+auto-discovered on install. It adds collector-free traces, metrics and events on
+top of the built-in Prometheus `/metrics` endpoint. Its maintenance commands
+(`telemetry:doctor`, `telemetry:flush`, `telemetry:monitor`) are available via
+`artisan`; point it at an exporter through its own configuration when you want to
+ship signals to a backend.
 
 ## Redis
 
