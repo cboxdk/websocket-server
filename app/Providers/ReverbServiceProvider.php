@@ -66,8 +66,15 @@ class ReverbServiceProvider extends ServiceProvider
     protected function registerDatabaseDriver(): void
     {
         $this->app->resolving(ApplicationManager::class, function (ApplicationManager $manager) {
-            $manager->extend('database', function () {
-                return $this->app->make(DatabaseApplicationProvider::class);
+            // Resolve through the container the Manager hands the creator, not through
+            // $this->app. Reverb 1.10.2 invokes a custom driver creator bound to the
+            // ApplicationManager instance, so inside this closure $this is the manager,
+            // and $this->app reads an undefined property there — the server refused to
+            // start with "Undefined property Laravel\Reverb\ApplicationManager::$app".
+            // The manager passes the container as the argument, which is what the
+            // config-provider creators already rely on.
+            $manager->extend('database', function ($app) {
+                return $app->make(DatabaseApplicationProvider::class);
             });
         });
     }
