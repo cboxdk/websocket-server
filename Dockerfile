@@ -5,7 +5,7 @@ ARG PHP_VERSION=8.4
 #
 # Build stage: Install Composer dependencies
 #
-FROM ghcr.io/gophpeek/baseimages/php-cli:${PHP_VERSION}-bookworm AS build
+FROM ghcr.io/cboxdk/php-baseimages/php-cli:${PHP_VERSION}-bookworm AS build
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN composer dump-autoload --optimize --no-dev
 #
 # Production image
 #
-FROM ghcr.io/gophpeek/baseimages/php-fpm-nginx:${PHP_VERSION}-bookworm
+FROM ghcr.io/cboxdk/php-baseimages/php-fpm-nginx:${PHP_VERSION}-bookworm
 
 LABEL org.opencontainers.image.source="https://github.com/cboxdk/websocket-server"
 LABEL org.opencontainers.image.description="Cbox WebSocket Server powered by Laravel Reverb"
@@ -36,10 +36,11 @@ COPY --from=build --chown=www-data:www-data /app .
 RUN rm -rf storage bootstrap/cache && \
     mkdir -p storage/app/public storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache database
 
-# Copy custom PHPeek PM config with fix-permissions process
-COPY docker/phpeek-pm.yaml /etc/phpeek-pm/phpeek-pm.yaml
+# cbox-init config: the image default plus the start-up steps (permissions,
+# migrations, seeding the Reverb applications)
+COPY docker/cbox-init.yaml /etc/cbox-init/cbox-init.yaml
 
-# Enable Reverb via PHPeek PM
+# Enable Reverb (cbox-init process `reverb`)
 ENV LARAVEL_REVERB=true
 
 EXPOSE 80 8080
