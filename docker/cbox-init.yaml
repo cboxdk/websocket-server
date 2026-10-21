@@ -1,0 +1,354 @@
+# cbox-init configuration for the Cbox WebSocket Server: the base image's own
+# /etc/cbox-init/cbox-init.yaml (cboxdk/php-baseimages php-fpm-nginx, PHP 8.4),
+# plus three start-up steps before PHP-FPM: fix permissions, migrate, and seed
+# reverb_applications from REVERB_SEED_APPS. Reverb itself is switched on by
+# LARAVEL_REVERB=true (Dockerfile). Update this file from the image's own when
+# the base image's defaults change.
+
+# ╔═══════════════════════════════════════════════════════════════════════════╗
+# ║  Cbox Init Configuration                                                   ║
+# ║  Process Manager for PHP Docker Containers                                ║
+# ║  https://github.com/cboxdk/init                                    ║
+# ╚═══════════════════════════════════════════════════════════════════════════╝
+
+version: "1.0"
+
+global:
+  # Shutdown timeout for graceful process termination
+  shutdown_timeout: 30
+
+  # Logging configuration
+  log_level: info
+  log_format: json
+
+  # Management API (disabled by default for security)
+  # Since cbox-init 3.0 the TCP listener binds loopback-only by default; a
+  # Unix socket at /var/run/cbox-init.sock is also served. To reach the API
+  # from outside the container, set api_host: 0.0.0.0 (or the
+  # CBOX_INIT_API_HOST env var) AND set api_auth.
+  api_enabled: false
+  api_host: 127.0.0.1
+  api_port: 9180
+  api_auth: ""
+
+  # Prometheus Metrics (enabled by default, localhost only for security)
+  metrics_enabled: true
+  metrics_port: 9090
+
+  # One scrape, one story (cbox-init 3.2+): when the fpm-exporter process is
+  # enabled, its phpfpm_*/laravel_* series are folded into this main /metrics
+  # response, next to cbox_init_* (supervision) and fpm_tune_* (capacity).
+  # The entrypoint activates this block when CBOX_FPM_EXPORTER=true; a source
+  # that is down degrades to cbox_init_federate_up{name} 0, never a failed
+  # scrape. Loopback-only by design.
+  #@FEDERATE#  metrics_federate:
+  #@FEDERATE#    - name: fpm-exporter
+  #@FEDERATE#      url: http://127.0.0.1:9114/metrics
+  metrics_path: /metrics
+
+  # Runtime PHP-FPM autotuning (embedded cboxdk/fpm-tune, cbox-init 3.1+).
+  # Measures live per-worker memory (PSS) and resizes the pool via an atomic
+  # drop-in + graceful SIGUSR2 reload (never a restart). The boot-time profile
+  # (PHP_FPM_AUTOTUNE_PROFILE) seeds pm.max_children; this loop refines it as
+  # real traffic arrives. Off by default — enable with CBOX_FPM_TUNE=true
+  # (or CBOX_INIT_FPM_TUNE_ENABLED=true).
+  fpm_tune:
+    enabled: false
+    mode: apply          # apply = write drop-ins + reload; advisory = recommend only
+    interval: 30s
+    metrics_addr: ""     # e.g. ":9110" to expose fpm_tune_* Prometheus metrics
+
+  # Restart configuration with exponential backoff
+  restart_backoff_initial: 1s
+  restart_backoff_max: 60s
+  max_restart_attempts: 5
+
+  # Readiness: cbox-init is the supervisor, so it is the source of truth for
+  # "are we ready". It writes /tmp/cbox-ready once ALL tracked processes are
+  # healthy (nginx + php-fpm + any enabled workers) and removes it if any goes
+  # unhealthy. Kubernetes should probe THIS, not an nginx path:
+  #   readinessProbe: { exec: { command: ["test", "-f", "/tmp/cbox-ready"] } }
+  # This is why nginx no longer serves an app-facing /health — the app owns it.
+  readiness:
+    enabled: true
+    path: /tmp/cbox-ready
+    mode: all_healthy
+    http_port: 9091
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Process Definitions (DAG-based dependencies)
+#
+# App processes (queue workers, scheduler, Horizon, Reverb, autoscaler) carry
+# `working_dir: ${WORKDIR:-/var/www/html}` and `user: ${CBOX_APP_USER:-}`,
+# which cbox-init expands when it loads this file. The entrypoint resolves
+# both, so every app process agrees with php-fpm about where the app lives
+# and who owns what it writes:
+#
+#   WORKDIR         the app root. Hardcoding /var/www/html crash-looped every
+#                   worker on a symlink-release layout (WORKDIR=/app/current)
+#                   with "Could not open input file: artisan".
+#   CBOX_APP_USER   www-data (or $APP_USER) when the container starts as root,
+#                   so a job's cache files, compiled views and logs stay
+#                   writable for the php-fpm workers that read them next.
+#                   EMPTY when this container cannot drop privileges at all
+#                   (--user 1000:1000, OpenShift's random uid, the rootless
+#                   images): cbox-init fails a process closed when it cannot
+#                   setuid, and "workers run as the wrong user" is a far
+#                   smaller problem than "workers do not run".
+#
+# Per-process overrides (CBOX_INIT_PROCESS_<NAME>_USER,
+# CBOX_INIT_PROCESS_<NAME>_WORKING_DIR) still win over both.
+# ═══════════════════════════════════════════════════════════════════════════
+processes:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Start-up steps (this repository's), in order, before PHP-FPM starts
+  # ─────────────────────────────────────────────────────────────────────────
+  fix-permissions:
+    enabled: true
+    command: ["bash", "-c", "chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database"]
+    type: oneshot
+    restart: never
+    working_dir: /var/www/html
+    stdout: true
+    stderr: true
+
+  migrate:
+    enabled: true
+    command: ["php", "artisan", "migrate", "--force"]
+    type: oneshot
+    # As the app user: a SQLite database created here must stay writable for PHP-FPM.
+    user: www-data
+    restart: never
+    working_dir: /var/www/html
+    depends_on:
+      - fix-permissions
+    stdout: true
+    stderr: true
+
+  # Seed reverb_applications from REVERB_SEED_APPS env (JSON array).
+  # Idempotent — re-runs each pod boot upsert rows from env, leaves
+  # admin-API-created apps alone. No-op when the env var is empty.
+  seed-apps:
+    enabled: true
+    command: ["php", "artisan", "reverb:seed-from-env"]
+    type: oneshot
+    user: www-data
+    restart: never
+    working_dir: /var/www/html
+    depends_on:
+      - migrate
+    stdout: true
+    stderr: true
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # PHP-FPM - Core PHP process handler
+  # ─────────────────────────────────────────────────────────────────────────
+  php-fpm:
+    enabled: true
+    depends_on:
+      - seed-apps
+    command: ["php-fpm", "-F", "-R"]
+    shutdown:
+      # SIGQUIT is FPM's graceful-stop signal; SIGTERM (the supervisor default)
+      # is immediate termination that severs in-flight requests on every deploy.
+      # process_control_timeout (10s, fpm-global.conf) bounds the worker drain;
+      # this timeout bounds the whole stop before SIGKILL.
+      signal: SIGQUIT
+      timeout: 25
+    type: longrun
+    restart: always
+    scale: 1
+    stdout: true
+    stderr: true
+    health_check:
+      # TCP pair is active by default; with PHP_FPM_LISTEN=unix the
+      # entrypoint drops the two @fpm-tcp lines and activates the exec
+      # probe below (same marker pattern as metrics_federate).
+      type: tcp # @fpm-tcp
+      address: "127.0.0.1:9000" # @fpm-tcp
+#@FPMSOCK#      type: exec
+#@FPMSOCK#      command: ["php", "-r", "exit(@stream_socket_client(getenv('PHP_FPM_SOCKET_URI')) ? 0 : 1);"]
+      period: 5
+      timeout: 3
+      failure_threshold: 3
+    logging:
+      files:
+        laravel-log:
+          path: ${WORKDIR:-/var/www/html}/storage/logs/laravel.log
+          json: { enabled: true, detect_auto: true }
+          rotate:
+            max_size: 50MB
+            max_files: 7
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Nginx - Web server (depends on PHP-FPM being ready)
+  # ─────────────────────────────────────────────────────────────────────────
+  nginx:
+    enabled: true
+    command: ["nginx", "-g", "daemon off;"]
+    shutdown:
+      # SIGQUIT = graceful stop (finish in-flight requests); the supervisor's
+      # SIGTERM default is nginx's fast shutdown.
+      signal: SIGQUIT
+      timeout: 25
+    type: longrun
+    restart: always
+    scale: 1
+    depends_on:
+      - php-fpm
+    stdout: true
+    stderr: true
+    health_check:
+      # Internal, localhost-only infra path (NOT the app's /health).
+      type: http
+      url: "http://127.0.0.1:80/healthz"
+      period: 5
+      timeout: 3
+      failure_threshold: 3
+      expected_status: 200
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Laravel Horizon - Queue Manager
+  # Enable via CBOX_INIT_PROCESS_HORIZON_ENABLED=true or LARAVEL_HORIZON=true
+  # ─────────────────────────────────────────────────────────────────────────
+  horizon:
+    enabled: false
+    command: ["php", "artisan", "horizon"]
+    type: longrun
+    restart: always
+    scale: 1
+    working_dir: ${WORKDIR:-/var/www/html}
+    user: ${CBOX_APP_USER:-}
+    stdout: true
+    stderr: true
+    shutdown:
+      # horizon:terminate asks the master to drain; the process timeout must
+      # outlive the LONGEST job Horizon may be finishing.
+      signal: SIGTERM
+      timeout: 90
+      pre_stop_hook:
+        command: ["php", "artisan", "horizon:terminate"]
+        timeout: 60
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Laravel Reverb - WebSocket Server
+  # Enable via CBOX_INIT_PROCESS_REVERB_ENABLED=true or LARAVEL_REVERB=true
+  # ─────────────────────────────────────────────────────────────────────────
+  reverb:
+    enabled: false
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    # After the migrations and the seed: Reverb reads its applications and the
+    # cache from the database, which must exist first.
+    depends_on:
+      - seed-apps
+    shutdown:
+      signal: SIGTERM
+      timeout: 10
+    type: longrun
+    restart: always
+    scale: 1
+    working_dir: ${WORKDIR:-/var/www/html}
+    user: ${CBOX_APP_USER:-}
+    stdout: true
+    stderr: true
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Queue Workers - Default Queue
+  # Enable via CBOX_INIT_PROCESS_QUEUE_DEFAULT_ENABLED=true or LARAVEL_QUEUE=true
+  # ─────────────────────────────────────────────────────────────────────────
+  queue-default:
+    enabled: false
+    command: ["php", "artisan", "queue:work", "redis", "--queue=default", "--tries=3"]
+    shutdown:
+      # queue:work finishes the job in hand on SIGTERM and then exits - so
+      # the timeout must outlive a JOB (match your worker --timeout), not a
+      # request. Raise it for long-running jobs.
+      signal: SIGTERM
+      timeout: 60
+    type: longrun
+    restart: always
+    scale: 2
+    working_dir: ${WORKDIR:-/var/www/html}
+    user: ${CBOX_APP_USER:-}
+    stdout: true
+    stderr: true
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Queue Workers - High Priority Queue
+  # Enable via CBOX_INIT_PROCESS_QUEUE_HIGH_ENABLED=true or LARAVEL_QUEUE_HIGH=true
+  # ─────────────────────────────────────────────────────────────────────────
+  queue-high:
+    enabled: false
+    command: ["php", "artisan", "queue:work", "redis", "--queue=high", "--tries=3"]
+    shutdown:
+      # queue:work finishes the job in hand on SIGTERM and then exits - so
+      # the timeout must outlive a JOB (match your worker --timeout), not a
+      # request. Raise it for long-running jobs.
+      signal: SIGTERM
+      timeout: 60
+    type: longrun
+    restart: always
+    scale: 1
+    working_dir: ${WORKDIR:-/var/www/html}
+    user: ${CBOX_APP_USER:-}
+    stdout: true
+    stderr: true
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Laravel Scheduler
+  # Enable via CBOX_INIT_PROCESS_SCHEDULER_ENABLED=true or LARAVEL_SCHEDULER=true
+  # ─────────────────────────────────────────────────────────────────────────
+  scheduler:
+    enabled: false
+    command: ["php", "artisan", "schedule:work"]
+    shutdown:
+      signal: SIGTERM
+      timeout: 10
+    type: longrun
+    restart: always
+    scale: 1
+    working_dir: ${WORKDIR:-/var/www/html}
+    user: ${CBOX_APP_USER:-}
+    stdout: true
+    stderr: true
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Queue Autoscaler (cboxdk/laravel-queue-autoscale)
+  # Enable via CBOX_INIT_PROCESS_AUTOSCALER_ENABLED=true or CBOX_QUEUE_AUTOSCALER=true
+  # NOTE: When using autoscaler, disable queue-default/queue-high —
+  #       the autoscaler spawns its own workers via Symfony Process.
+  # ─────────────────────────────────────────────────────────────────────────
+  autoscaler:
+    enabled: false
+    command: ["php", "artisan", "queue:autoscale"]
+    type: longrun
+    restart: always
+    scale: 1
+    working_dir: ${WORKDIR:-/var/www/html}
+    user: ${CBOX_APP_USER:-}
+    stdout: true
+    stderr: true
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Cbox FPM Exporter - PHP-FPM + Laravel Prometheus metrics on :9114
+  # Enable via CBOX_FPM_EXPORTER=true or CBOX_INIT_PROCESS_FPM_EXPORTER_ENABLED=true
+  # listen_queue and active/idle worker saturation are THE signals for
+  # horizontal scaling decisions (HPA/KEDA); fpm_tune_* (port 9110) covers
+  # the vertical axis. Autodiscovers pools over FastCGI - no nginx dependency.
+  # ─────────────────────────────────────────────────────────────────────────
+  fpm-exporter:
+    enabled: false
+    command: ["fpm-exporter", "serve"]
+    type: longrun
+    restart: always
+    scale: 1
+    depends_on:
+      - php-fpm
+    stdout: true
+    stderr: true
+    health_check:
+      type: tcp
+      address: "127.0.0.1:9114"
+      period: 10
+      timeout: 3
+      failure_threshold: 3
