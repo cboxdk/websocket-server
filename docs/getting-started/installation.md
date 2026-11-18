@@ -41,6 +41,14 @@ The image exposes two ports — `80` for the HTTP API and `8080` for WebSocket
 traffic — and stores its SQLite database under `/var/www/html/database`. Mount a
 volume there so apps and other state survive restarts.
 
+Every process in the image runs as `www-data` (uid 33, gid 33); none runs as
+root. A named Docker volume takes that ownership from the image on first use. A
+host directory or a Kubernetes volume must be writable by uid 33: `chown 33:33`
+the directory, or give the pod `securityContext: {fsGroup: 33}`. The image runs
+unchanged with `--cap-drop ALL`, `--security-opt no-new-privileges`, and under
+the Kubernetes `restricted` Pod Security level (`runAsNonRoot: true`,
+`runAsUser: 33`, `capabilities: {drop: [ALL]}`).
+
 ```bash
 docker run -d \
   -p 80:80 \

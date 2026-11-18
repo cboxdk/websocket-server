@@ -41,6 +41,18 @@ See [Scaling](../cookbook/scaling.md) for cluster mode.
 See [Metrics](../core-concepts/metrics.md) and
 [API authentication](../security/api-authentication.md).
 
+## Telemetry
+
+[`cboxdk/laravel-telemetry`](https://cbox.dk/packages/laravel-telemetry) reads
+its own `TELEMETRY_*` variables; these are the ones that matter for this server.
+
+| Variable | Default | Description |
+|---|---|---|
+| `TELEMETRY_ENABLED` | `true` | Switch the package off entirely. |
+| `TELEMETRY_STORE` | `sqlite` in the image (`redis` otherwise) | Where push metrics are kept between requests: `sqlite`, `redis`, `apcu` or `array`. |
+| `TELEMETRY_ALLOWED_IPS` | *unset* | IPs or CIDRs allowed to scrape `/telemetry/metrics`; without it (or a token) that endpoint answers 403 outside `local`. |
+| `TELEMETRY_PROMETHEUS_TOKEN` | *unset* | Bearer token accepted by `/telemetry/metrics` instead of the IP list. |
+
 ## Database
 
 Apps and other state persist to a database. SQLite is the default and needs no
@@ -60,8 +72,9 @@ Use MySQL or PostgreSQL when running multiple instances against a shared store.
 
 ## Redis
 
-Redis is used for cluster-mode scaling (and, with `METRICS_DRIVER=redis`, for
-the metrics snapshot). It is only needed at runtime when scaling is enabled.
+Redis is used for cluster-mode scaling (and, with `METRICS_DRIVER=redis` or
+`TELEMETRY_STORE=redis`, for metrics). It is only needed at runtime when one of
+those is enabled.
 
 | Variable | Default | Description |
 |---|---|---|

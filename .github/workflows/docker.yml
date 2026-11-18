@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -23,8 +26,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      # The image must boot rootless and answer before anything is pushed:
+      # migrate, seed, nginx on :80, Reverb on :8080 with every capability dropped.
+      - name: Smoke test (linux/amd64)
+        run: |
+          docker buildx build --platform linux/amd64 --load -t websocket-server:smoke .
+          docker run -d --name smoke --cap-drop ALL --security-opt no-new-privileges \
+            -e APP_KEY=base64:$(openssl rand -base64 32) \
+            -e DB_DATABASE=/var/www/html/database/database.sqlite \
+            -e 'REVERB_SEED_APPS=[{"id":"smoke","key":"smoke-key","secret":"smoke-secret","name":"smoke"}]' \
+            websocket-server:smoke
+          for i in $(seq 1 30); do docker exec smoke test -f /tmp/cbox-ready && break; sleep 2; done
+          docker exec smoke sh -c 'test "$(id -u)" = 33'
+          docker exec smoke curl -fsS http://127.0.0.1/health
+          code=$(docker exec smoke curl -s -o /dev/null -m 3 -w '%{http_code}' \
+            -H 'Connection: Upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Version: 13' \
+            -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
+            'http://127.0.0.1:8080/app/smoke-key?protocol=7' || true)
+          test "$code" = 101 || { docker logs smoke; exit 1; }
 
       - name: Log in to Container Registry
         if: github.event_name != 'pull_request'
@@ -50,10 +75,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: |
-            PHP_VERSION=8.4
