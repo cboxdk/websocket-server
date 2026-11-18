@@ -2,11 +2,12 @@
 
 namespace Database\Factories;
 
+use App\Models\ReverbApplication;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\ReverbApplication>
+ * @extends Factory<ReverbApplication>
  */
 class ReverbApplicationFactory extends Factory
 {

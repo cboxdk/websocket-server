@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Database\Factories\ReverbApplicationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ReverbApplication extends Model
 {
-    /** @use HasFactory<\Database\Factories\ReverbApplicationFactory> */
+    /** @use HasFactory<ReverbApplicationFactory> */
     use HasFactory;
 
     public $incrementing = false;

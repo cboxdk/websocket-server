@@ -8,6 +8,7 @@ use App\Reverb\DatabaseApplicationProvider;
 use Illuminate\Broadcasting\BroadcastManager;
 use Illuminate\Http\Response;
 use Laravel\Reverb\Application;
+use Pusher\Pusher;
 use Throwable;
 
 class MetricsController extends Controller
@@ -162,7 +163,7 @@ class MetricsController extends Controller
     /**
      * Create a Pusher client configured to talk to Reverb.
      */
-    protected function createPusherClient(Application $app): \Pusher\Pusher
+    protected function createPusherClient(Application $app): Pusher
     {
         $options = $app->options();
 
