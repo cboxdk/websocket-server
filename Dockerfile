@@ -5,7 +5,7 @@ ARG PHP_VERSION=8.4
 #
 # Build stage: Install Composer dependencies
 #
-FROM ghcr.io/cboxdk/php-baseimages/php-cli:${PHP_VERSION}-bookworm AS build
+FROM ghcr.io/cboxdk/php-baseimages/php-cli:${PHP_VERSION}-trixie-v2 AS build
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN composer dump-autoload --optimize --no-dev
 #
 # Production image
 #
-FROM ghcr.io/cboxdk/php-baseimages/php-fpm-nginx:${PHP_VERSION}-bookworm
+FROM ghcr.io/cboxdk/php-baseimages/php-fpm-nginx:${PHP_VERSION}-trixie-v2
 
 LABEL org.opencontainers.image.source="https://github.com/cboxdk/websocket-server"
 LABEL org.opencontainers.image.description="Cbox WebSocket Server powered by Laravel Reverb"
