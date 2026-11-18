@@ -9,6 +9,7 @@ A production-ready WebSocket server powered by [Laravel Reverb](https://reverb.l
 - **Health Checks** - Docker/Kubernetes-ready `/health` endpoint
 - **Hot Reload** - Update app configurations without restart
 - **Database Storage** - SQLite by default, supports MySQL/PostgreSQL
+- **Rootless Image** - Debian 13, PHP 8.5, every process as `www-data` (uid 33); `linux/amd64` and `linux/arm64`
 
 ## Quick Start
 
@@ -23,6 +24,10 @@ docker run -d \
   -v websocket-data:/var/www/html/database \
   ghcr.io/cboxdk/websocket-server:latest
 ```
+
+The container runs as uid 33. A named volume works as is; a host directory
+mounted at `/var/www/html/database` must be writable by uid 33
+(`chown 33:33 <dir>`). See [Installation](docs/getting-started/installation.md).
 
 ### Docker Compose
 

@@ -1,13 +1,16 @@
 # cbox-init configuration for the Cbox WebSocket Server: the base image's own
-# /etc/cbox-init/cbox-init.yaml (cboxdk/php-baseimages php-fpm-nginx, PHP 8.4),
-# plus three start-up steps before PHP-FPM: fix permissions, migrate, and seed
-# reverb_applications from REVERB_SEED_APPS. Reverb itself is switched on by
-# LARAVEL_REVERB=true (Dockerfile). Update this file from the image's own when
-# the base image's defaults change.
+# /etc/cbox-init/cbox-init.yaml (cboxdk/php-baseimages php-fpm-nginx:8.5-trixie-rootless-v2,
+# Cbox Init 3.10), with this repository's changes:
+#   - two start-up steps before PHP-FPM: migrate, then seed reverb_applications from
+#     REVERB_SEED_APPS (both as the image user, www-data: the image is rootless);
+#   - nginx on port 80 (NGINX_HTTP_PORT=80, Dockerfile) and Reverb on 8080, the ports
+#     this server has always published, instead of the rootless defaults 8080 and 6001.
+# Reverb itself is switched on by LARAVEL_REVERB=true (Dockerfile). Update this file from
+# the base image's own when its defaults change.
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  Cbox Init Configuration                                                   ║
-# ║  Process Manager for PHP Docker Containers                                ║
+# ║  Cbox Init Configuration (Rootless)                                       ║
+# ║  Process Manager for PHP Docker Containers - rootless, nginx 80, Reverb 8080 ║
 # ║  https://github.com/cboxdk/init                                    ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
@@ -63,12 +66,9 @@ global:
   restart_backoff_max: 60s
   max_restart_attempts: 5
 
-  # Readiness: cbox-init is the supervisor, so it is the source of truth for
-  # "are we ready". It writes /tmp/cbox-ready once ALL tracked processes are
-  # healthy (nginx + php-fpm + any enabled workers) and removes it if any goes
-  # unhealthy. Kubernetes should probe THIS, not an nginx path:
-  #   readinessProbe: { exec: { command: ["test", "-f", "/tmp/cbox-ready"] } }
-  # This is why nginx no longer serves an app-facing /health — the app owns it.
+  # Supervisor-owned readiness: /tmp/cbox-ready exists only when all tracked
+  # processes are healthy. Kubernetes should probe this (exec test -f), not an
+  # nginx/app path — /health and /up belong to the application.
   readiness:
     enabled: true
     path: /tmp/cbox-ready
@@ -103,36 +103,22 @@ processes:
   # ─────────────────────────────────────────────────────────────────────────
   # Start-up steps (this repository's), in order, before PHP-FPM starts
   # ─────────────────────────────────────────────────────────────────────────
-  fix-permissions:
-    enabled: true
-    command: ["bash", "-c", "chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database"]
-    type: oneshot
-    restart: never
-    working_dir: /var/www/html
-    stdout: true
-    stderr: true
-
   migrate:
     enabled: true
     command: ["php", "artisan", "migrate", "--force"]
     type: oneshot
-    # As the app user: a SQLite database created here must stay writable for PHP-FPM.
-    user: www-data
     restart: never
     working_dir: /var/www/html
-    depends_on:
-      - fix-permissions
     stdout: true
     stderr: true
 
-  # Seed reverb_applications from REVERB_SEED_APPS env (JSON array).
-  # Idempotent — re-runs each pod boot upsert rows from env, leaves
-  # admin-API-created apps alone. No-op when the env var is empty.
+  # Seed reverb_applications from REVERB_SEED_APPS (a JSON array). Idempotent:
+  # every boot upserts the rows from the environment and leaves apps created
+  # through the admin API alone. A no-op when the variable is empty.
   seed-apps:
     enabled: true
     command: ["php", "artisan", "reverb:seed-from-env"]
     type: oneshot
-    user: www-data
     restart: never
     working_dir: /var/www/html
     depends_on:
@@ -182,6 +168,7 @@ processes:
 
   # ─────────────────────────────────────────────────────────────────────────
   # Nginx - Web server (depends on PHP-FPM being ready)
+  # Port 80 here (NGINX_HTTP_PORT=80 in the Dockerfile): the pod may bind it unprivileged.
   # ─────────────────────────────────────────────────────────────────────────
   nginx:
     enabled: true
@@ -199,7 +186,6 @@ processes:
     stdout: true
     stderr: true
     health_check:
-      # Internal, localhost-only infra path (NOT the app's /health).
       type: http
       url: "http://127.0.0.1:80/healthz"
       period: 5
@@ -233,12 +219,13 @@ processes:
   # ─────────────────────────────────────────────────────────────────────────
   # Laravel Reverb - WebSocket Server
   # Enable via CBOX_INIT_PROCESS_REVERB_ENABLED=true or LARAVEL_REVERB=true
+  # On 8080 as this server always was (nginx is on 80), not the rootless default 6001.
   # ─────────────────────────────────────────────────────────────────────────
   reverb:
     enabled: false
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
-    # After the migrations and the seed: Reverb reads its applications and the
-    # cache from the database, which must exist first.
+    # After the migrations and the seed: Reverb reads its applications from the
+    # database, which must exist first.
     depends_on:
       - seed-apps
     shutdown:
@@ -251,6 +238,12 @@ processes:
     user: ${CBOX_APP_USER:-}
     stdout: true
     stderr: true
+    health_check:
+      type: tcp
+      address: "127.0.0.1:8080"
+      period: 10
+      timeout: 3
+      failure_threshold: 3
 
   # ─────────────────────────────────────────────────────────────────────────
   # Queue Workers - Default Queue
